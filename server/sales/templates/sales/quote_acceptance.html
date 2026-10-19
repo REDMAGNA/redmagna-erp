@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% if quote %}Cotización {{ quote.number }}{% else %}Aceptar cotización{% endif %} · {% if company.name %}{{ company.name }}{% else %}Redmagna{% endif %}</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:28px 16px;background:#f2f4f7;color:#25344a;font:16px/1.5 Arial,sans-serif}.sheet{max-width:820px;margin:0 auto;background:#fff;padding:36px;border-radius:14px;box-shadow:0 8px 30px #15223814}.brand{color:#bc2228;font-size:14px;font-weight:800;letter-spacing:.12em}.eyebrow{color:#67758a;font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-top:22px}h1{font-size:26px;margin:4px 0 10px}.muted{color:#65748a}.detail{display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid #e5e9ef;padding:12px 0}.detail span:last-child{text-align:right;font-weight:700}.lines{width:100%;border-collapse:collapse;margin:24px 0}.lines th,.lines td{padding:10px 8px;border-bottom:1px solid #e5e9ef;text-align:left}.lines th:last-child,.lines td:last-child{text-align:right;white-space:nowrap}.totals{max-width:350px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:6px}.grand{border-top:2px solid #25344a;margin-top:6px;padding-top:12px;font-size:19px;font-weight:700}.notes{margin:22px 0;padding:14px;background:#f6f7f9;border-radius:8px;white-space:pre-wrap}.accept{margin-top:30px;padding-top:24px;border-top:1px solid #e5e9ef}.field{display:block;margin:14px 0}.field span{display:block;font-weight:700;margin-bottom:5px}.field input[type=text],.field input[type=email]{width:100%;max-width:480px;padding:11px;border:1px solid #bdc6d2;border-radius:7px;font:inherit}.quantity-control input{width:100px;padding:8px;border:1px solid #bdc6d2;border-radius:6px;font:inherit}.check{display:flex;gap:10px;align-items:flex-start;margin:20px 0}.check input{margin-top:5px}.button,.print-action{background:#bc2228;color:#fff;border:0;border-radius:7px;padding:12px 18px;font:700 15px Arial,sans-serif;cursor:pointer}.print-action{margin:10px 0}.print-only{display:none}.error{background:#fff2f0;color:#9e1d21;padding:11px 13px;border-radius:7px;margin:8px 0}.success{background:#edf8ef;color:#176b2b;padding:15px;border-radius:8px;margin-top:24px}.foot{font-size:12px;color:#758195;margin-top:24px;border-top:1px solid #e5e9ef;padding-top:15px}@media(max-width:600px){.sheet{padding:22px 16px}.lines th,.lines td{padding:8px 4px;font-size:13px}}@media print{body{padding:0;background:#fff}.sheet{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none}.print-action,.accept-controls,.accept-instructions,.button,.accept .field,.accept .check,.error{display:none!important}.accept{margin:0;padding:0;border:0}.print-only{display:inline}.quantity-control input{display:none}.lines tr{break-inside:avoid}.notes{break-inside:avoid}.foot{margin-top:28px}}
+  </style>
+  <style>
+    @page{size:A4;margin:14mm}.letterhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:18px;border-bottom:3px solid #bc2228}.letterhead-brand{min-width:190px}.letterhead-brand .brand{font-size:22px;letter-spacing:.14em}.company-legal{font-size:12px;color:#65748a;margin-top:3px}.company-details{font-size:12px;color:#65748a;text-align:right;white-space:pre-line}.quote-meta{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-top:24px}.quote-meta .eyebrow{margin-top:0}.quote-number{font-weight:700;color:#bc2228}.lines thead{display:table-header-group}.lines th{background:#f3f5f8;color:#48566b;font-size:11px;text-transform:uppercase;letter-spacing:.04em}.lines tr,.total,.detail,.letterhead{break-inside:avoid}.amount-note{font-size:12px;color:#65748a;margin-top:6px}@media(max-width:600px){.letterhead{gap:12px}.company-details{font-size:11px}.letterhead-brand{min-width:0}.quote-meta{align-items:flex-start;flex-direction:column}}@media print{.letterhead{padding-bottom:12px}.letterhead .brand{print-color-adjust:exact;-webkit-print-color-adjust:exact}.lines th{print-color-adjust:exact;-webkit-print-color-adjust:exact}.success{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <header class="letterhead">
+      <div class="letterhead-brand"><div class="brand">{% if company.name %}{{ company.name }}{% else %}REDMAGNA{% endif %}</div>{% if company.legal_name %}<div class="company-legal">{{ company.legal_name }}</div>{% endif %}{% if company.rfc %}<div class="company-legal">RFC {{ company.rfc }}</div>{% endif %}</div>
+      <div class="company-details">{% if company.address %}{{ company.address }}{% endif %}{% if company.phone %}{% if company.address %}&#10;{% endif %}{{ company.phone }}{% endif %}{% if company.email %}{% if company.address or company.phone %}&#10;{% endif %}{{ company.email }}{% endif %}{% if company.website %}{% if company.address or company.phone or company.email %}&#10;{% endif %}{{ company.website }}{% endif %}</div>
+    </header>
+    {% if unavailable %}
+      <h1>Esta cotización no está disponible</h1>
+      <p class="muted">{{ unavailable }}</p>
+    {% elif accepted %}
+      <div class="eyebrow">Cotización {{ quote.number }}</div>
+      <h1>{{ quote.title }}</h1>
+      <div class="success"><strong>Propuesta aceptada.</strong><br>La aceptación quedó registrada a nombre de {{ acceptance.accepted_by_name }} el {{ acceptance.accepted_at|date:"d/m/Y H:i" }}.</div>
+      <p class="muted">El equipo de Redmagna dará seguimiento a la orden de trabajo.</p>
+      <p><button type="button" class="print-action" onclick="window.print()">Imprimir / guardar PDF</button></p>
+      <p class="muted">Preparada para {{ quote.customer.name }} · Fecha {{ quote.issue_date|date:"d/m/Y" }} · Vigencia {% if quote.valid_until %}{{ quote.valid_until|date:"d/m/Y" }}{% else %}no especificada{% endif %}</p>
+      <div class="detail"><span>Cliente</span><span>{{ quote.customer.name }}</span></div>
+      <div class="detail"><span>RFC</span><span>{{ quote.customer.rfc|default:"No indicado" }}</span></div>
+      {% if quote.payment_term_days != None %}<div class="detail"><span>Plazo de pago</span><span>{{ quote.payment_term_days }} días naturales desde la emisión de factura</span></div>{% endif %}
+      {% if quote.service_address %}<div class="detail"><span>Sitio de servicio</span><span>{{ quote.service_site_name|default:"Domicilio acordado" }} · {{ quote.service_address }}{% if quote.service_contact_name %} · Contacto: {{ quote.service_contact_name }}{% endif %}{% if quote.service_contact_phone %} · {{ quote.service_contact_phone }}{% endif %}{% if quote.service_contact_email %} · {{ quote.service_contact_email }}{% endif %}</span></div>{% endif %}
+      <table class="lines"><thead><tr><th>Concepto</th><th>Cantidad</th><th>Precio unitario</th><th>Descuento</th><th>IVA</th><th>Importe</th></tr></thead><tbody>{% for line in lines %}<tr><td>{{ line.description }}{% if line.is_optional %}<br><small class="muted">Opcional · incluida</small>{% endif %}</td><td>{{ line.document_quantity }}</td><td>${{ line.unit_price|floatformat:2 }}</td><td>{{ line.discount_percent|floatformat:2 }}%</td><td>{{ line.tax_rate|floatformat:2 }}%</td><td>${{ line.document_subtotal|floatformat:2 }}</td></tr>{% endfor %}</tbody></table>
+      <div class="totals"><div class="total"><span>Subtotal</span><strong>${{ subtotal|floatformat:2 }}</strong></div><div class="total"><span>Impuestos estimados</span><strong>${{ tax_total|floatformat:2 }}</strong></div><div class="total grand"><span>Total MXN</span><strong>${{ total|floatformat:2 }}</strong></div></div>
+      {% if quote.notes %}<div class="notes"><strong>Notas y condiciones</strong><br>{{ quote.notes }}</div>{% endif %}
+      <p class="foot">Esta cotización es una propuesta comercial, no un CFDI. Los impuestos son estimados. La aceptación registrada es comercial y no constituye una firma electrónica certificada.</p>
+    {% else %}
+      <div class="eyebrow">Propuesta comercial · {{ quote.number }}</div>
+      <h1>{{ quote.title }}</h1>
+      <p class="muted">Preparada para {{ quote.customer.name }} · Fecha {{ quote.issue_date|date:"d/m/Y" }} · Vigencia {% if quote.valid_until %}{{ quote.valid_until|date:"d/m/Y" }}{% else %}no especificada{% endif %}</p>
+      <div class="detail"><span>Cliente</span><span>{{ quote.customer.name }}</span></div>
+      <div class="detail"><span>RFC</span><span>{{ quote.customer.rfc|default:"No indicado" }}</span></div>
+      {% if quote.payment_term_days != None %}<div class="detail"><span>Plazo de pago</span><span>{{ quote.payment_term_days }} días naturales desde la emisión de factura</span></div>{% endif %}
+      {% if quote.service_address %}<div class="detail"><span>Sitio de servicio</span><span>{{ quote.service_site_name|default:"Domicilio acordado" }} · {{ quote.service_address }}{% if quote.service_contact_name %} · Contacto: {{ quote.service_contact_name }}{% endif %}{% if quote.service_contact_phone %} · {{ quote.service_contact_phone }}{% endif %}{% if quote.service_contact_email %} · {{ quote.service_contact_email }}{% endif %}</span></div>{% endif %}
+      <button type="button" class="print-action" onclick="window.print()">Imprimir / guardar PDF</button>
+      <form id="quote-accept-form" class="accept" method="post">
+        {% csrf_token %}
+      <table class="lines">
+        <thead><tr><th>Concepto</th><th>Cantidad que aceptas</th><th>Precio unitario</th><th>Descuento</th><th>IVA</th><th>Importe</th></tr></thead>
+        <tbody>{% for line in lines %}<tr><td>{{ line.description }}{% if line.is_optional %}<br><small class="muted">Opcional</small>{% endif %}</td><td><span class="quantity-control"><input class="accepted-quantity" type="number" name="accepted_quantity_{{ line.id }}" min="{% if line.is_optional %}0{% else %}0.001{% endif %}" max="{{ line.proposed_quantity }}" step="0.001" value="{{ line.accepted_quantity_input }}" data-max="{{ line.proposed_quantity }}" data-min="{% if line.is_optional %}0{% else %}0.001{% endif %}" data-unit-price="{{ line.unit_price }}" data-tax-rate="{{ line.tax_rate }}" data-discount-percent="{{ line.discount_percent }}" aria-label="Cantidad aceptada de {{ line.description }}"><span class="print-only quantity-print-state">{{ line.accepted_quantity_input }}</span></span><small class="muted"> de {{ line.proposed_quantity }} disponibles</small></td><td>${{ line.unit_price|floatformat:2 }}</td><td>{{ line.discount_percent|floatformat:2 }}%</td><td>{{ line.tax_rate|floatformat:2 }}%</td><td class="selected-line-amount">${{ line.document_subtotal|floatformat:2 }}</td></tr>{% endfor %}</tbody>
+      </table>
+      <div class="totals"><div class="total"><span>Subtotal aceptado</span><strong id="accepted-subtotal">${{ accepted_subtotal|floatformat:2 }}</strong></div><div class="total"><span>Impuestos estimados</span><strong id="accepted-tax">${{ accepted_tax|floatformat:2 }}</strong></div><div class="total grand"><span>Total MXN</span><strong id="selected-grand-total">${{ accepted_total|floatformat:2 }}</strong></div></div>
+      {% if quote.notes %}<div class="notes"><strong>Notas y condiciones</strong><br>{{ quote.notes }}</div>{% endif %}
+        <div class="accept-instructions"><h2>Confirmar aceptación</h2>
+        <p>Indica la cantidad que aceptas para cada concepto; puedes aceptar una parte, la cantidad completa o cero en los opcionales. No puedes superar lo propuesto. Confirma tu nombre y el correo destinatario indicado en esta cotización. La aceptación creará una orden de venta y una orden de trabajo en Redmagna.</p></div>
+        {% for error in errors %}<div class="error">{{ error }}</div>{% endfor %}
+        <label class="field"><span>Nombre completo</span><input type="text" name="name" maxlength="160" autocomplete="name" value="{{ name }}" required></label>
+        <label class="field"><span>Correo destinatario de la cotización</span><input type="email" name="email" autocomplete="email" value="{{ email|default:recipient_email }}" required></label>
+        <label class="check"><input type="checkbox" name="accept" value="yes" required><span>Confirmo que revisé los conceptos base y las opciones seleccionadas, e indico que acepto esta propuesta.</span></label>
+        <button class="button" type="submit">Aceptar propuesta</button>
+      </form>
+      <p class="foot">Esta confirmación registra una aceptación comercial y no constituye una firma electrónica certificada. El documento es una propuesta comercial, no un CFDI; los impuestos son estimados.</p>
+    {% endif %}
+  </main>
+  <script>
+    (() => {
+      if (!document.getElementById("quote-accept-form")) return;
+      const money = cents => `$${new Intl.NumberFormat("es-MX").format(cents / 100n)}.${String(cents % 100n).padStart(2, "0")}`;
+      const scaledInteger = (value, places) => {
+        const [whole, fraction = ""] = String(value).split(".");
+        return BigInt(whole || "0") * (10n ** BigInt(places)) + BigInt((fraction + "0".repeat(places)).slice(0, places) || "0");
+      };
+      const update = () => {
+        let subtotal = 0n, tax = 0n;
+        document.querySelectorAll(".accepted-quantity").forEach(input => {
+          const maximum = Number(input.dataset.max) || 0;
+          const minimum = Number(input.dataset.min) || 0;
+          const quantity = Math.max(minimum, Math.min(maximum, Number(input.value) || 0));
+          if (quantity !== Number(input.value)) input.value = quantity.toFixed(3);
+          const quantityMilli = BigInt(Math.round(quantity * 1000));
+          const unitPriceCents = scaledInteger(input.dataset.unitPrice, 2);
+          const gross = (unitPriceCents * quantityMilli + 500n) / 1000n;
+          const discountPercentHundredths = scaledInteger(input.dataset.discountPercent, 2);
+          const discount = (gross * discountPercentHundredths + 5000n) / 10000n;
+          const lineSubtotal = gross - discount;
+          const taxRateHundredths = scaledInteger(input.dataset.taxRate, 2);
+          const lineTax = (lineSubtotal * taxRateHundredths + 5000n) / 10000n;
+          subtotal += lineSubtotal; tax += lineTax;
+          input.closest("tr").querySelector(".selected-line-amount").textContent = money(lineSubtotal);
+          input.closest(".quantity-control").querySelector(".quantity-print-state").textContent = quantity.toFixed(3);
+        });
+        document.getElementById("accepted-subtotal").textContent = money(subtotal);
+        document.getElementById("accepted-tax").textContent = money(tax);
+        document.getElementById("selected-grand-total").textContent = money(subtotal + tax);
+      };
+      document.querySelectorAll(".accepted-quantity").forEach(input => input.addEventListener("input", update));
+      update();
+    })();
+  </script>
+</body>
+</html>

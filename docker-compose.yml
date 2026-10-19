@@ -1,0 +1,303 @@
+services:
+  db:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/usr/local/bin/redmagna-db-entrypoint.sh"]
+    command: ["postgres"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-redmagna}
+      POSTGRES_USER: ${POSTGRES_USER:-redmagna}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+    volumes:
+      - ${POSTGRES_DATA_PATH:?Define POSTGRES_DATA_PATH en .env}:/var/lib/postgresql/data
+      - ./tools/redmagna-db-entrypoint.sh:/usr/local/bin/redmagna-db-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-redmagna} -d ${POSTGRES_DB:-redmagna}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  app:
+    build: .
+    group_add:
+      - "${ERP_DATA_GID:-65534}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Define DJANGO_SECRET_KEY en .env}
+      DJANGO_DEBUG: "false"
+      ERP_API_TOKEN_TTL_HOURS: ${ERP_API_TOKEN_TTL_HOURS:-12}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-}
+      DJANGO_USE_HTTPS_PROXY: ${DJANGO_USE_HTTPS_PROXY:-false}
+      DJANGO_SECURE_COOKIES: ${DJANGO_SECURE_COOKIES:-false}
+      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-false}
+      DJANGO_SECURE_HSTS_SECONDS: ${DJANGO_SECURE_HSTS_SECONDS:-0}
+      APP_BIND_ADDRESS: ${APP_BIND_ADDRESS:-0.0.0.0}
+      APP_WORKERS: ${APP_WORKERS:-1}
+      MEDIA_ROOT: /data/media
+      POSTGRES_DB: ${POSTGRES_DB:-redmagna}
+      POSTGRES_USER: ${POSTGRES_USER:-redmagna}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-false}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      ERP_PUBLIC_URL: ${ERP_PUBLIC_URL:-}
+      CRM_LEAD_NOTIFICATION_EMAIL: ${CRM_LEAD_NOTIFICATION_EMAIL:-}
+      FEL_ENVIRONMENT: ${FEL_ENVIRONMENT:-test}
+      FEL_TIMBRADO_USER: ${FEL_TIMBRADO_USER:-}
+      FEL_TIMBRADO_PASSWORD: ${FEL_TIMBRADO_PASSWORD:-}
+      FEL_ALLOW_PRODUCTION: ${FEL_ALLOW_PRODUCTION:-false}
+      FEL_ALLOW_CANCELLATION: ${FEL_ALLOW_CANCELLATION:-false}
+      FEL_CANCEL_PFX_BASE64: ${FEL_CANCEL_PFX_BASE64:-}
+      FEL_CANCEL_PFX_PASSWORD: ${FEL_CANCEL_PFX_PASSWORD:-}
+      CFDI_ISSUER_RFC: ${CFDI_ISSUER_RFC:-}
+      CFDI_ISSUER_NAME: ${CFDI_ISSUER_NAME:-}
+      CFDI_ISSUER_FISCAL_REGIME: ${CFDI_ISSUER_FISCAL_REGIME:-}
+      CFDI_ISSUER_POSTAL_CODE: ${CFDI_ISSUER_POSTAL_CODE:-}
+      CFDI_PROVIDER_CODE: ${CFDI_PROVIDER_CODE:-fel-premium}
+      CFDI_CSD_CERT_PATH: /run/secrets/fiscal/redmagna.cer
+      CFDI_CSD_KEY_PATH: /run/secrets/fiscal/redmagna.key
+      CFDI_CSD_PASSWORD_FILE: /run/secrets/fiscal/csd_password
+    volumes:
+      - ${CFDI_CSD_HOST_PATH:-./secrets/fiscal}:/run/secrets/fiscal:ro
+      - ${MEDIA_PATH:-./data/media}:/data/media
+    ports:
+      - "${APP_BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:8000/healthz/', headers={'X-Forwarded-Proto':'https'}), timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+  crm-reminders:
+    build: .
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Define DJANGO_SECRET_KEY en .env}
+      ERP_PUBLIC_URL: ${ERP_PUBLIC_URL:-}
+      POSTGRES_DB: ${POSTGRES_DB:-redmagna}
+      POSTGRES_USER: ${POSTGRES_USER:-redmagna}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-false}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      CRM_REMINDERS_ENABLED: ${CRM_REMINDERS_ENABLED:-false}
+      CRM_LEAD_NOTIFICATION_EMAIL: ${CRM_LEAD_NOTIFICATION_EMAIL:-}
+      BILLING_REMINDERS_ENABLED: ${BILLING_REMINDERS_ENABLED:-false}
+      BILLING_REMINDER_DAYS_AHEAD: ${BILLING_REMINDER_DAYS_AHEAD:-3}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        while :; do
+          python manage.py expire_sent_quotes || echo "Quote expiration run failed; the next cycle will retry." >&2
+          if [ -n "$$EMAIL_HOST" ] && [ -n "$$EMAIL_FROM" ]; then
+            python manage.py send_support_ticket_notifications --limit 50 || echo "Support notification run failed; pending notifications will be retried." >&2
+          fi
+          if [ "$$CRM_REMINDERS_ENABLED" = "true" ]; then
+            if [ -n "$$EMAIL_HOST" ] && [ -n "$$EMAIL_FROM" ]; then
+              python manage.py send_opportunity_activity_reminders --window-hours 24 || echo "CRM reminder run failed; retrying in one hour." >&2
+            else
+              echo "CRM reminders are enabled, but EMAIL_HOST or EMAIL_FROM is missing." >&2
+            fi
+          fi
+          if [ "$$BILLING_REMINDERS_ENABLED" = "true" ]; then
+            if [ -n "$$EMAIL_HOST" ] && [ -n "$$EMAIL_FROM" ]; then
+              python manage.py send_customer_invoice_reminders --upcoming-days "$$BILLING_REMINDER_DAYS_AHEAD" --limit 200 || echo "Billing reminder run failed; pending messages will be retried." >&2
+            else
+              echo "BILLING_REMINDERS_ENABLED is true, but EMAIL_HOST or EMAIL_FROM is missing." >&2
+            fi
+          fi
+          if [ -n "$$CRM_LEAD_NOTIFICATION_EMAIL" ]; then
+            if [ -n "$$EMAIL_HOST" ] && [ -n "$$EMAIL_FROM" ]; then
+              python manage.py send_public_lead_notifications --limit 50 || echo "Public lead notifications failed; pending messages will be retried." >&2
+            else
+              echo "CRM_LEAD_NOTIFICATION_EMAIL is configured, but EMAIL_HOST or EMAIL_FROM is missing." >&2
+            fi
+          fi
+          sleep 300
+        done
+
+  support-email-inbound:
+    build: .
+    profiles: ["email-inbound"]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Define DJANGO_SECRET_KEY en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-redmagna}
+      POSTGRES_USER: ${POSTGRES_USER:-redmagna}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      SUPPORT_IMAP_HOST: ${SUPPORT_IMAP_HOST:-}
+      SUPPORT_IMAP_PORT: ${SUPPORT_IMAP_PORT:-993}
+      SUPPORT_IMAP_USERNAME: ${SUPPORT_IMAP_USERNAME:-}
+      SUPPORT_IMAP_PASSWORD: ${SUPPORT_IMAP_PASSWORD:-}
+      SUPPORT_IMAP_MAILBOX: ${SUPPORT_IMAP_MAILBOX:-INBOX}
+      SUPPORT_IMAP_AUTH_SERV_ID: ${SUPPORT_IMAP_AUTH_SERV_ID:-}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        while :; do
+          python manage.py receive_support_emails --limit 100 || echo "Support inbox processing failed; the next cycle will retry." >&2
+          sleep 300
+        done
+
+  db-backup:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    profiles: ["maintenance"]
+    group_add:
+      - "${ERP_DATA_GID:-65534}"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-redmagna}
+      POSTGRES_USER: ${POSTGRES_USER:-redmagna}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+    volumes:
+      - ${BACKUP_PATH:?Define BACKUP_PATH en .env}:/backups
+      - ${MEDIA_PATH:-./data/media}:/media:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      set -eu;
+      umask 077;
+      run_dir="$$(mktemp -d /backups/.redmagna-backup.XXXXXX)";
+      run_id="$${run_dir##*.}";
+      stamp="$$(date +%Y%m%d-%H%M%S)-$$run_id";
+      dump_tmp="$$run_dir/database.dump.partial";
+      media_tmp="$$run_dir/media.tar.gz.partial";
+      manifest_tmp="$$run_dir/checksums.sha256.partial";
+      dump_final="/backups/redmagna-$$stamp.dump";
+      media_final="/backups/redmagna-media-$$stamp.tar.gz";
+      manifest_final="/backups/redmagna-checksums-$$stamp.sha256";
+      published=0;
+      dump_published=0;
+      media_published=0;
+      manifest_published=0;
+      cleanup() { rm -f "$$dump_tmp" "$$media_tmp" "$$manifest_tmp"; if [ "$$published" -ne 1 ]; then if [ "$$dump_published" -eq 1 ]; then rm -f "$$dump_final"; fi; if [ "$$media_published" -eq 1 ]; then rm -f "$$media_final"; fi; if [ "$$manifest_published" -eq 1 ]; then rm -f "$$manifest_final"; fi; fi; rmdir "$$run_dir" 2>/dev/null || true; };
+      trap cleanup EXIT;
+      trap 'exit 130' INT;
+      trap 'exit 143' TERM;
+      if [ -e "$$dump_final" ] || [ -e "$$media_final" ] || [ -e "$$manifest_final" ]; then echo "Backup destination already exists; refusing to overwrite." >&2; exit 1; fi;
+      export PGPASSWORD="$$POSTGRES_PASSWORD";
+      pg_dump --host db --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB"
+      --format custom --file "$$dump_tmp";
+      tar -czf "$$media_tmp" -C /media .;
+      pg_restore --list "$$dump_tmp" >/dev/null;
+      tar -tzf "$$media_tmp" >/dev/null;
+      dump_hash="$$(sha256sum "$$dump_tmp" | cut -d ' ' -f1)";
+      media_hash="$$(sha256sum "$$media_tmp" | cut -d ' ' -f1)";
+      printf '%s  %s\n%s  %s\n' "$$dump_hash" "$${dump_final##*/}" "$$media_hash" "$${media_final##*/}" > "$$manifest_tmp";
+      ln "$$dump_tmp" "$$dump_final";
+      dump_published=1;
+      ln "$$media_tmp" "$$media_final";
+      media_published=1;
+      ln "$$manifest_tmp" "$$manifest_final";
+      manifest_published=1;
+      published=1;
+      rm -f "$$dump_tmp" "$$media_tmp" "$$manifest_tmp";
+      trap - EXIT
+
+  db-restore-test:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    profiles: ["maintenance"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-redmagna}
+      POSTGRES_USER: ${POSTGRES_USER:-redmagna}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      RESTORE_DATABASE: ${RESTORE_DATABASE:-redmagna_restore_test}
+      RESTORE_FILE: ${RESTORE_FILE:-}
+    volumes:
+      - ${BACKUP_PATH:?Define BACKUP_PATH en .env}:/backups:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        if [ -z "$$RESTORE_FILE" ]; then
+          echo "Define RESTORE_FILE con el nombre de un .dump dentro de BACKUP_PATH." >&2
+          exit 2
+        fi
+        case "$$RESTORE_FILE" in
+          */*|*..*) echo "RESTORE_FILE debe ser solo un nombre de archivo, sin rutas." >&2; exit 2 ;;
+        esac
+        case "$$RESTORE_FILE" in
+          redmagna-*.dump) ;;
+          *) echo "RESTORE_FILE debe tener el formato redmagna-<sello>.dump." >&2; exit 2 ;;
+        esac
+        case "$$RESTORE_DATABASE" in
+          redmagna|postgres|template0|template1) echo "Usa un nombre de base de prueba distinto de la base operativa." >&2; exit 2 ;;
+        esac
+        case "$$RESTORE_DATABASE" in
+          *[!a-zA-Z0-9_]*) echo "RESTORE_DATABASE solo puede usar letras, números y guion bajo." >&2; exit 2 ;;
+        esac
+        if [ ! -f "/backups/$$RESTORE_FILE" ]; then
+          echo "No se encontró el respaldo solicitado en BACKUP_PATH." >&2
+          exit 2
+        fi
+        backup_stamp="$${RESTORE_FILE#redmagna-}"
+        backup_stamp="$${backup_stamp%.dump}"
+        manifest="redmagna-checksums-$$backup_stamp.sha256"
+        if [ -f "/backups/$$manifest" ]; then
+          media_file="redmagna-media-$$backup_stamp.tar.gz"
+          awk -v dump="$$RESTORE_FILE" -v media="$$media_file" 'NF != 2 || length($$1) != 64 || $$1 ~ /[^0-9a-f]/ { exit 1 } NR == 1 && $$2 != dump { exit 1 } NR == 2 && $$2 != media { exit 1 } END { if (NR != 2) exit 1 }' "/backups/$$manifest" || { echo "El manifiesto no corresponde al par de archivos seleccionado." >&2; exit 2; }
+          (cd /backups && sha256sum -c "$$manifest")
+        else
+          echo "Aviso: no se encontró manifiesto SHA-256; se acepta un respaldo anterior sin verificación de integridad." >&2
+        fi
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        createdb --host db --username "$$POSTGRES_USER" --maintenance-db "$$POSTGRES_DB" "$$RESTORE_DATABASE"
+        pg_restore --host db --username "$$POSTGRES_USER" --dbname "$$RESTORE_DATABASE" --no-owner --no-privileges --exit-on-error "/backups/$$RESTORE_FILE"
+

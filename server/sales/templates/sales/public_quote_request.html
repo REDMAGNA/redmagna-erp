@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Solicitar cotización · Redmagna</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:28px 16px;background:#f2f4f7;color:#25344a;font:16px/1.5 Arial,sans-serif}.sheet{max-width:680px;margin:0 auto;background:#fff;padding:36px;border-radius:14px;box-shadow:0 8px 30px #15223814}.brand{color:#bc2228;font-size:14px;font-weight:800;letter-spacing:.12em}h1{font-size:27px;margin:8px 0}.muted{color:#65748a}.field{display:block;margin:16px 0}.field span{display:block;font-weight:700;margin-bottom:5px}.field input:not([type=checkbox]),.field textarea{width:100%;padding:11px;border:1px solid #bdc6d2;border-radius:7px;font:inherit}.field textarea{min-height:125px;resize:vertical}.check{display:flex;gap:10px;align-items:flex-start;margin:20px 0}.check input{margin-top:5px}.button{background:#bc2228;color:#fff;border:0;border-radius:7px;padding:12px 18px;font:700 15px Arial,sans-serif;cursor:pointer}.errorlist,.error{color:#9e1d21}.errorlist{margin:4px 0;padding-left:20px}.success{background:#edf8ef;color:#176b2b;padding:16px;border-radius:8px;margin-top:20px}.foot{font-size:12px;color:#758195;margin-top:24px;border-top:1px solid #e5e9ef;padding-top:15px}.trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <div class="brand">REDMAGNA</div>
+    <h1>Solicita una cotización</h1>
+    {% if submitted %}
+      <div class="success"><strong>Gracias por escribirnos.</strong><br>Revisaremos tu solicitud y nos pondremos en contacto contigo.</div>
+    {% else %}
+      <p class="muted">Cuéntanos qué necesitas. Nuestro equipo revisará la información antes de preparar una propuesta.</p>
+      {% if form.non_field_errors %}<div class="error">{{ form.non_field_errors }}</div>{% endif %}
+      <form method="post" novalidate>
+        {% csrf_token %}<input type="hidden" name="token" value="{{ token }}">
+        {% for field in form.hidden_fields %}{% if field.name != "website" %}{{ field }}{% endif %}{% endfor %}
+        <div class="trap" aria-hidden="true">{{ form.website.label_tag }}{{ form.website }}</div>
+        {% for field in form.visible_fields %}
+          {% if field.name != "website" %}
+            {% if field.name == "consent" %}
+              <label class="check">{{ field }}<span>{{ field.label }} *</span>{{ field.errors }}</label>
+            {% else %}
+              <label class="field"><span>{{ field.label }}{% if field.field.required %} *{% endif %}</span>{{ field }}{{ field.errors }}</label>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        <p class="muted">Usaremos estos datos únicamente para atender esta solicitud. {% if privacy_url %}<a href="{{ privacy_url }}">Consulta el aviso de privacidad de Redmagna</a>.{% else %}Consulta el aviso de privacidad de Redmagna.{% endif %}</p>
+        <button class="button" type="submit">Enviar solicitud</button>
+      </form>
+    {% endif %}
+    <p class="foot">Enviar este formulario no confirma una compra ni constituye una cotización aceptada.</p>
+  </main>
+</body>
+</html>

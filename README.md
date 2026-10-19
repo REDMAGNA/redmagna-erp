@@ -159,4 +159,3 @@ Para permitir IVA al 8%, configura además `CFDI_BORDER_8_REVIEWED_POSTAL_CODES`
 - No hay CMS para publicar páginas de servicios ni formulario público que cree oportunidades; el análisis de Website está documentado, pero no es una función implementada. La cotización pública y el portal de soporte tienen alcances separados.
 - El esquema tiene migraciones versionadas; aún se requiere validarlas al ejecutar migraciones en un entorno Django/PostgreSQL compatible antes de desplegar.
 - `LICENSE` contiene el texto completo de AGPL-3.0-only. El SBOM de dependencias Python está disponible; antes de un release público faltan el SBOM de la imagen, la revisión de avisos nativos y la auditoría de las imágenes base; consulta [auditoría de licencias](docs/auditoria-licencias-dependencias-v1.md).
-

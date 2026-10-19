@@ -1,0 +1,15 @@
+.git
+.openai
+node_modules/
+work/
+outputs/
+.env
+__pycache__/
+*.py[cod]
+backups/
+data/
+secrets/
+*.cer
+*.key
+csd_password
+source.zip
