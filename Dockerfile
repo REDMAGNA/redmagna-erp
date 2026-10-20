@@ -12,7 +12,7 @@ COPY docs/ /app/docs/
 COPY tools/ /app/tools/
 COPY .dockerignore .env.example Dockerfile LICENSE README.md docker-compose.yml .gitignore /app/
 WORKDIR /app/server
-RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput && chmod -R a+rX /app/server/staticfiles
 RUN python package_source.py
 EXPOSE 8000
 USER 65534:65534
